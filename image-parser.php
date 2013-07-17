@@ -3,54 +3,70 @@
 /*
   Plugin Name: Image Parser
   Description: Парсер изображений
-  Version: 1.0
+  Version: 1.2
   Author: Nikolay Bychko
-  Author URI:
+  Author URI: http://www.nikkoblog.ru/
   Plugin URI:
  */
 
 // Вызов функции добавления административных меню
 add_action('admin_menu', 'add_pages');
 
-// Сама функция, вызываемая выше
+// Функция, вызываемая выше
 function add_pages() {
-    // Создание нового пункта меню верхнего уровня:
+    // Создание нового пункта меню
     add_menu_page('Image Parser', 'Image Parser', 8, 'parser', 'image_parser_page');
 }
 
 // image_parser_page() выводит содержимое страницы меню Image Parser
 function image_parser_page() {
-    echo "<h2>Парсер изображений</h2>";
-    _form();
+    include('form.html');
     _parser();
-    image_upload();
+    _image_upload();
 }
 
-// Форма для ввода URL
-function _form() {
-    echo "Введите URL: <br />";
-    echo "<form action=\"/wp-admin/admin.php?page=parser\" id=\"form1\" method=\"post\">
-          <input type=\"text\" name=\"url\" >
-          <input type=\"submit\" name=\"submit\" value=\"Go!\"></form><br/>";
-    echo "<br /><b>URL:</b>" . $_POST['url'] . "<br/>";
+// curl
+function _get_content($url) {
+    // Заголовки
+    $agent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; ru-RU; rv:1.7.12) Gecko/20050919 Firefox/1.0.7";
+    $header[] = "Accept: text/html;q=0.9, text/plain;q=0.8, image/png, */*;q=0.5";
+    $header[] = "Accept_charset: windows-1251, utf-8, utf-16;q=0.6, *;q=0.1";
+    $header[] = "Accept_encoding: identity";
+    $header[] = "Accept_language: en-us,en;q=0.5";
+    $header[] = "Connection: close";
+    $header[] = "Cache-Control: no-store, no-cache, must-revalidate";
+    $header[] = "Keep_alive: 300";
+    $header[] = "Expires: Thu, 01 Jan 1970 00:00:01 GMT";
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_USERAGENT, $agent);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $content = curl_exec($ch);
+    curl_close($ch);
+
+    return $content;
 }
 
 // Парсер изображений. Вывод изображений и формы с чекбоксами
 function _parser() {
+    echo "<b>URL:</b>" . $_POST['url'] . "<br/>";
     echo "<b>Images:</b><br />";
     echo "<form action=\"/wp-admin/admin.php?page=parser\" id=\"form2\" method=\"post\">";
     if (isset($_POST['submit']) && !empty($_POST['url'])) {
-        $url = $_POST['url']; //Адресс с которого будут парсится картинки
-        $content = file_get_contents($url);
-        if ($c = preg_match_all("/<img src=[\'\"](.*?)[\'\"]/", $content, $matches)) {
-            $x = 1;
+        $url = $_POST['url']; // Адресс с которого будут парсится картинки
+        //$content = file_get_contents($url);
+        $content = _get_content($url);
+        if (preg_match_all("/<img src=[\'\"](.*?)[\'\"]/", $content, $matches)) {
+            $img = 1;
             $i = 0;
-            while ($x != "") {
-                $x = $matches[1][$i];
-                if ($x != "") {
-                    print '<img src="' . $x . '" alt="" /> ';
-                    echo "<input type=\"checkbox\" name=\"data[]\" value=\"$x\"><br />";
-                }
+            while (isset($img)) {
+                $img = $matches[1][$i];
+                print ' <img src="' . $img . '" alt="" /> ';
+                echo "<input type=\"checkbox\" name=\"data[]\" value=\"$img\"><br />";
                 $i++;
             }
         }
@@ -60,14 +76,13 @@ function _parser() {
 }
 
 // Загрузка выбранных изображений
-function image_upload() {
+function _image_upload() {
     //$image_url = "http://s.wordpress.org/images/thememarkets/mojo-banner.jpg";
 
     $data = $_POST['data'];
     $count = count($data);
     for ($i = 0; $i < $count; $i++) {
         $image_url = $data[$i];
-
         if (isset($image_url)) {
             $upload_dir = wp_upload_dir();
             $image_data = file_get_contents($image_url);
