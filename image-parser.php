@@ -61,15 +61,12 @@ function _parser() {
         //$content = file_get_contents($url);
         $content = _get_content($url);
         if (preg_match_all("/<img src=[\'\"](.*?)[\'\"]/", $content, $matches)) {
-            $img = 1;
-            $i = 0;
-            while (isset($img)) {
-                $img = $matches[1][$i];
-                print ' <img src="' . $img . '" alt="" /> ';
-                echo "<input type=\"checkbox\" name=\"data[]\" value=\"$img\"><br />";
-                $i++;
-            }
-        }
+			foreach($matches as $match){
+				$img = $match[1];
+				print ' <img src="' . $img . '" alt="" /> ';
+				echo "<input type=\"checkbox\" name=\"data[]\" value=\"$img\"><br />";
+			}
+		}
     }
     echo "<br /><input type=\"submit\" name=\"submit2\" value=\"Save\">";
     echo "</form>";
