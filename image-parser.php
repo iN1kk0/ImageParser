@@ -4,9 +4,6 @@
   Plugin Name: Image Parser
   Description: Парсер изображений
   Version: 1.2
-  Author: Nikolay Bychko
-  Author URI: http://www.nikkoblog.ru/
-  Plugin URI:
  */
 
 // Вызов функции добавления административных меню
